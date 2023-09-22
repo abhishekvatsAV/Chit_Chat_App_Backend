@@ -4,7 +4,7 @@ const User = require("../models/userModel");
 
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, pic } = req.body;
-  // console.log("first", name, email, password, pic, req.body);
+  // // console.log("first", name, email, password, pic, req.body);
   if (!name || !email || !password) {
     res.status(400);
     throw new Error("Please Enter All the Fields");
@@ -40,7 +40,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  console.log("auth", email, password);
+  // console.log("auth", email, password);
 
   const user = await User.findOne({ email });
 
@@ -53,7 +53,7 @@ const authUser = asyncHandler(async (req, res) => {
       token: generateToken(user._id),
     });
   } else {
-    console.log("Invalid UserName or Password");
+    // console.log("Invalid UserName or Password");
     res.status(401).json("Invalid UserName or Password");
   }
 });

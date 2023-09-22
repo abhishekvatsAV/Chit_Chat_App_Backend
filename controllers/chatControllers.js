@@ -6,7 +6,7 @@ const accessChat = asyncHandler(async (req, res) => {
   const { userId } = req.body;
 
   if (!userId) {
-    console.log("UserId param not sent with request");
+    // console.log("UserId param not sent with request");
     return res.sendStatus(400);
   }
 
@@ -56,13 +56,13 @@ const fetchChats = asyncHandler(async (req, res) => {
       .populate("latestMessage")
       .sort({ updatedAt: -1 })
       .then(async (result) => {
-        // console.log("1. ", result);
-        // console.log("1. ", result[0].latestMessage);
+        // // console.log("1. ", result);
+        // // console.log("1. ", result[0].latestMessage);
         result = await User.populate(result, {
           path: "latestMessage.sender",
           select: "name pic email",
         });
-        // console.log("2. ", result[0].latestMessage);
+        // // console.log("2. ", result[0].latestMessage);
 
         res.status(200).send(result);
       });
@@ -119,7 +119,7 @@ const renameGroup = asyncHandler(async (req, res) => {
     .populate("groupAdmin", "-password");
 
   if (!updatedChat) {
-    console.log("first");
+    // console.log("first");
     res.status(404).json({ error: error.message });
   } else {
     res.status(200).json(updatedChat);
@@ -128,7 +128,7 @@ const renameGroup = asyncHandler(async (req, res) => {
 
 // we need chatId and userId to add this user to the this chat
 const addToGroup = asyncHandler(async (req, res) => {
-  console.log("first")
+  // console.log("first")
   const { chatId, userId } = req.body;
   const added = await Chat.findByIdAndUpdate(
     chatId,

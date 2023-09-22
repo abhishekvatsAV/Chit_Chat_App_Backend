@@ -15,7 +15,7 @@ const app = express();
 //cors
 app.use(
   cors({
-    origin: "*",
+    origin: `${process.env.ENDPOINT}`,
   })
 );
 
@@ -38,18 +38,18 @@ app.use(errorHandler);
 // listen for requests
 const PORT = process.env.PORT || 4000;
 const server = app.listen(PORT, () => {
-  console.log("Server started on " + PORT);
+  // console.log("Server started on " + PORT);
 });
 
 const io = require("socket.io")(server, {
   pingTimeout: 60000,
   cors: {
-    origin: "http://localhost:3000",
+    origin: `${process.env.ENDPOINT}`,
   },
 });
 
 io.on("connection", (socket) => {
-  console.log("connected to socket.io");
+  // console.log("connected to socket.io");
 
   socket.on("setup", (userData) => {
     socket.join(userData._id);
@@ -58,7 +58,7 @@ io.on("connection", (socket) => {
 
   socket.on("join chat", (room) => {
     socket.join(room);
-    console.log("user join room : " + room);
+    // console.log("user join room : " + room);
   });
 
   socket.on("new message", (newMessageRecieved) => {
@@ -85,7 +85,7 @@ io.on("connection", (socket) => {
   });
 
   socket.off("setup", () => {
-    console.log("user disconnected");
+    // console.log("user disconnected");
     socket.leave(userData._id);
   });
 });
