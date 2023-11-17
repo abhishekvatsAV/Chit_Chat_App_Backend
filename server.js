@@ -15,12 +15,12 @@ const app = express();
 //cors
 app.use(
   cors({
-    origin: `${process.env.ENDPOINT}`,
+    origin: "*",
   })
 );
 
 // middleware & static files
-app.use(express.static("public"));
+// app.use(express.static("public"));
 app.use(express.json()); // to accept JSON data
 
 // routes
