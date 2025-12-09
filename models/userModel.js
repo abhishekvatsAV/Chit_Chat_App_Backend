@@ -32,12 +32,13 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 // befor saving in db or before save event occor in db this middleware will run
 userSchema.pre("save", async function (next) {
   // if current password is not modified then go to next api
-  if (!this.isModified) {
-    next();
+  if (!this.isModified("password")) {
+    return next();
   }
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
 const User = mongoose.model("User", userSchema);
