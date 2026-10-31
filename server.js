@@ -70,7 +70,9 @@ io.on("connection", (socket) => {
   // console.log("connected to socket.io");
 
   socket.on("setup", (userData) => {
-    socket.join(userData._id);
+    if (!userData?._id) return;
+    socket.userId = userData._id.toString();
+    socket.join(socket.userId);
     socket.emit("connected");
   });
 
@@ -87,9 +89,9 @@ io.on("connection", (socket) => {
     }
 
     chat.users.forEach((user) => {
-      if (user._id === newMessageRecieved.sender._id) return;
+      if (user._id.toString() === newMessageRecieved.sender._id.toString()) return;
 
-      socket.in(user._id).emit("message recieved", newMessageRecieved);
+      socket.in(user._id.toString()).emit("message recieved", newMessageRecieved);
     });
   });
 
