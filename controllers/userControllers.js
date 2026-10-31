@@ -5,6 +5,7 @@ const User = require("../models/userModel");
 const demoGuests = {
   "guest1@example.com": { name: "Guest 1", password: "guest123" },
   "guest2@example.com": { name: "Guest 2", password: "guest123" },
+  "guest@example.com": { name: "Guest User", password: "123456" },
 };
 
 const registerUser = asyncHandler(async (req, res) => {

@@ -22,8 +22,9 @@ And Run these cmnd
 1. npm install
 2. npm start
 
-For a quick two-user demo, use `guest1@example.com` and `guest2@example.com`
-with password `guest123`. The accounts are created automatically on first login.
+For a quick demo, use `guest1@example.com` or `guest2@example.com` with
+password `guest123`. The legacy `guest@example.com` account uses `123456`.
+Demo accounts are created automatically on first login.
 
 ### frontend
 
