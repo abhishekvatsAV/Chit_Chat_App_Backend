@@ -22,6 +22,13 @@ And Run these cmnd
 1. npm install
 2. npm start
 
+Demo guest logins are disabled by default. Set `ENABLE_DEMO_GUESTS=true` to
+password `guest123`. The legacy `guest@example.com` account uses `123456`.
+Demo accounts are created automatically on first login.
+
+Set `FRONTEND_URL` to the deployed frontend origin in production. It is used
+to restrict REST and Socket.IO cross-origin access.
+
 ### frontend
 
 1. npm install

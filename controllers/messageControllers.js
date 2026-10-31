@@ -3,6 +3,7 @@ const User = require("../models/userModel");
 
 const asyncHandler = require("express-async-handler");
 const Message = require("../models/messageModel");
+const mongoose = require("mongoose");
 
 //@description     Create New Message
 //@route           POST /api/message/
@@ -10,13 +11,18 @@ const Message = require("../models/messageModel");
 const sendMessage = asyncHandler(async (req, res) => {
   const { content, chatId } = req.body;
 
-  if (!content || !chatId) {
+  if (!content?.trim() || !mongoose.isValidObjectId(chatId)) {
     return res.status(400).json({ message: "Invalid data passed into request" });
+  }
+
+  const chat = await Chat.findOne({ _id: chatId, users: req.user._id });
+  if (!chat) {
+    return res.status(403).json({ message: "You are not a member of this chat" });
   }
 
   let newMessage = {
     sender: req.user._id,
-    content: content,
+    content: content.trim(),
     chat: chatId,
   };
 
@@ -42,6 +48,16 @@ const sendMessage = asyncHandler(async (req, res) => {
 
 const allMessages = asyncHandler(async (req, res) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.chatId)) {
+      return res.status(400).json({ message: "Invalid chat id" });
+    }
+    const chat = await Chat.findOne({
+      _id: req.params.chatId,
+      users: req.user._id,
+    });
+    if (!chat) {
+      return res.status(403).json({ message: "You are not a member of this chat" });
+    }
     const messages = await Message.find({ chat: req.params.chatId })
       .populate("sender", "name pic email")
       .populate("chat");

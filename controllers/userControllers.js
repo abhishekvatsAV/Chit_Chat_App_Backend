@@ -2,6 +2,14 @@ const asyncHandler = require("express-async-handler");
 const generateToken = require("../config/genrateToken");
 const User = require("../models/userModel");
 
+const demoGuests = {
+  "guest1@example.com": { name: "Guest 1", password: "guest123" },
+  "guest2@example.com": { name: "Guest 2", password: "guest123" },
+  "guest@example.com": { name: "Guest User", password: "123456" },
+};
+const demoGuestEmails = Object.keys(demoGuests);
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, pic } = req.body;
   
@@ -48,10 +56,29 @@ const registerUser = asyncHandler(async (req, res) => {
 });
 
 const authUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-  // console.log("auth", email, password);
+  const email =
+    typeof req.body.email === "string" ? req.body.email.trim() : "";
+  const password = req.body.password;
+  const enableDemoGuests = process.env.ENABLE_DEMO_GUESTS === "true";
 
-  const user = await User.findOne({ email });
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required" });
+  }
+
+  if (!enableDemoGuests) {
+    await User.deleteMany({ email: { $in: demoGuestEmails } });
+  }
+
+  const demoGuest = demoGuests[email];
+  let user = await User.findOne({ email });
+
+  if (enableDemoGuests && !user && demoGuest && password === demoGuest.password) {
+    user = await User.create({
+      name: demoGuest.name,
+      email,
+      password: demoGuest.password,
+    });
+  }
 
   if (user && (await user.matchPassword(password))) {
     res.json({
@@ -69,18 +96,22 @@ const authUser = asyncHandler(async (req, res) => {
 
 // /api/user?search=luffy      ? query
 const allUsers = asyncHandler(async (req, res) => {
-  const keyword = req.query.search
+  const search =
+    typeof req.query.search === "string" ? req.query.search.trim() : "";
+  const escapedSearch = search ? escapeRegex(search) : "";
+  const keyword = search
     ? {
         $or: [
-          { name: { $regex: req.query.search, $options: "i" } },
-          { email: { $regex: req.query.search, $options: "i" } },
+          { name: { $regex: escapedSearch, $options: "i" } },
+          { email: { $regex: escapedSearch, $options: "i" } },
         ],
       }
     : {};
 
-  const users = await User.find(keyword).find({
+  const users = await User.find({
+    ...keyword,
     _id: { $ne: req.user._id },
-  });
+  }).select("-password");
 
   res.send(users);
 });

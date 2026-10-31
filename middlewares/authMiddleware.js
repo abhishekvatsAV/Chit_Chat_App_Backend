@@ -20,14 +20,12 @@ const protect = asyncHandler(async (req, res, next) => {
 
       next();
     } catch (error) {
-      console.log("error middleware auth : ", error)
-      // res.status(401).json({error});
+      res.status(401);
       throw new Error("Not authorized, token failed");
     }
   }
 
   if (!token) {
-    console.log("error middleware auth : ", error)
     res.status(401);
     throw new Error("Not authorized, no token");
   }
