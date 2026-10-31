@@ -22,7 +22,7 @@ And Run these cmnd
 1. npm install
 2. npm start
 
-For a quick demo, use `guest1@example.com` or `guest2@example.com` with
+Demo guest logins are disabled by default. Set `ENABLE_DEMO_GUESTS=true` to
 password `guest123`. The legacy `guest@example.com` account uses `123456`.
 Demo accounts are created automatically on first login.
 

@@ -9,8 +9,12 @@ const populateChat = (query) =>
     .populate("groupAdmin", "-password")
     .populate("latestMessage");
 
+const isGroupMember = (chat, userId) =>
+  chat.users.some((id) => id.toString() === userId.toString());
+
 const isGroupAdmin = (chat, userId) =>
   chat.isGroupChat &&
+  isGroupMember(chat, userId) &&
   chat.groupAdmin?.toString() === userId.toString();
 
 const accessChat = asyncHandler(async (req, res) => {
@@ -74,7 +78,14 @@ const createGroupChat = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "Users must be a valid array" });
   }
 
-  const uniqueIds = [...new Set((users || []).map(String))];
+  if (!Array.isArray(users)) {
+    return res.status(400).json({ message: "Users must be a valid array" });
+  }
+
+  const requesterId = req.user._id.toString();
+  const uniqueIds = [
+    ...new Set(users.map(String).filter((id) => id !== requesterId)),
+  ];
   if (uniqueIds.length < 2) {
     return res.status(400).json({
       message: "At least two other members are required to form a group",
@@ -150,18 +161,32 @@ const removeFromGroup = asyncHandler(async (req, res) => {
   }
   const chat = await Chat.findById(chatId);
   if (!chat) return res.status(404).json({ message: "Chat not found" });
+  if (!chat.isGroupChat) {
+    return res
+      .status(400)
+      .json({ message: "Membership changes are only allowed for group chats" });
+  }
 
   const isSelf = userId.toString() === req.user._id.toString();
   if (!isGroupAdmin(chat, req.user._id) && !isSelf) {
     return res.status(403).json({ message: "Only the group admin can remove members" });
   }
+  if (!isGroupMember(chat, userId)) {
+    return res.status(404).json({ message: "User is not in this group" });
+  }
   if (chat.users.length <= 1) {
     return res.status(400).json({ message: "A group must have at least one member" });
   }
 
-  const removed = await populateChat(
-    Chat.findByIdAndUpdate(chatId, { $pull: { users: userId } }, { new: true })
+  const remainingUsers = chat.users.filter(
+    (id) => id.toString() !== userId.toString()
   );
+  const update = { $pull: { users: userId } };
+  if (chat.groupAdmin?.toString() === userId.toString() && remainingUsers.length > 0) {
+    update.$set = { groupAdmin: remainingUsers[0] };
+  }
+
+  const removed = await populateChat(Chat.findByIdAndUpdate(chatId, update, { new: true }));
   res.json(removed);
 });
 
