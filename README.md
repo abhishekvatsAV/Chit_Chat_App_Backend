@@ -26,6 +26,9 @@ For a quick demo, use `guest1@example.com` or `guest2@example.com` with
 password `guest123`. The legacy `guest@example.com` account uses `123456`.
 Demo accounts are created automatically on first login.
 
+Set `FRONTEND_URL` to the deployed frontend origin in production. It is used
+to restrict REST and Socket.IO cross-origin access.
+
 ### frontend
 
 1. npm install

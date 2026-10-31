@@ -9,6 +9,10 @@ const chatRoutes = require("./routes/chatRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 
 const helmet = require("helmet");
+const { jwtVerify } = require("jose");
+const Chat = require("./models/chatModel");
+const Message = require("./models/messageModel");
+const User = require("./models/userModel");
 // const rateLimit = require("express-rate-limit");
 
 connectDB();
@@ -30,7 +34,7 @@ app.use(helmet());
 //cors
 app.use(
   cors({
-    origin: "*",
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
   })
 );
 
@@ -62,46 +66,83 @@ const server = app.listen(PORT, () => {
 const io = require("socket.io")(server, {
   pingTimeout: 60000,
   cors: {
-    origin: `*`,
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
   },
 });
 
-io.on("connection", (socket) => {
-  // console.log("connected to socket.io");
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth?.token;
+    if (!token) return next(new Error("Not authorized"));
 
-  socket.on("setup", (userData) => {
-    if (!userData?._id) return;
-    socket.userId = userData._id.toString();
-    socket.join(socket.userId);
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    const { payload } = await jwtVerify(token, secret);
+    const user = await User.findById(payload.id).select("_id");
+    if (!user) return next(new Error("Not authorized"));
+
+    socket.userId = user._id.toString();
+    next();
+  } catch {
+    next(new Error("Not authorized"));
+  }
+});
+
+io.on("connection", (socket) => {
+  socket.join(socket.userId);
+  socket.emit("connected");
+
+  socket.on("setup", () => {
     socket.emit("connected");
   });
 
-  socket.on("join chat", (room) => {
-    socket.join(room);
-    // console.log("user join room : " + room);
+  socket.on("join chat", async (room) => {
+    try {
+      const isMember = await Chat.exists({ _id: room, users: socket.userId });
+      if (isMember) socket.join(room);
+    } catch {
+      // Ignore invalid or unauthorized room requests.
+    }
   });
 
-  socket.on("new message", (newMessageRecieved) => {
-    let chat = newMessageRecieved.chat;
+  socket.on("new message", async (newMessageReceived) => {
+    try {
+      const message = await Message.findOne({
+        _id: newMessageReceived?._id,
+        sender: socket.userId,
+      })
+        .populate("sender", "name pic email")
+        .populate("chat");
 
-    if (!chat.users) {
-      return console.log("chat.users not defined");
+      if (!message) return;
+
+      const chat = await Chat.findOne({
+        _id: message.chat._id,
+        users: socket.userId,
+      });
+      if (!chat) return;
+
+      const populatedMessage = await Message.populate(message, {
+        path: "chat.users",
+        select: "name pic email",
+      });
+
+      chat.users.forEach((userId) => {
+        if (userId.toString() !== socket.userId) {
+          socket.to(userId.toString()).emit("message recieved", populatedMessage);
+        }
+      });
+    } catch {
+      // Ignore forged or malformed message events.
     }
-
-    chat.users.forEach((user) => {
-      if (user._id.toString() === newMessageRecieved.sender._id.toString()) return;
-
-      socket.in(user._id.toString()).emit("message recieved", newMessageRecieved);
-    });
   });
 
   // now for typing functionality
   socket.on("typing", (room) => {
-    socket.in(room).emit("typing");
+    if (socket.rooms.has(room)) socket.in(room).emit("typing");
   });
 
   socket.on("stop typing", (room) => {
-    socket.in(room).emit("stop typing");
+    if (socket.rooms.has(room)) socket.in(room).emit("stop typing");
   });
 
   socket.on("disconnect", () => {
